@@ -1,5 +1,19 @@
 # go-lua-proxy-fn
 
+> **What this repo is.** This is one half of an A/B comparison. The same task —
+> "build a Go reverse proxy with a per-request Lua scripting API" — was given to
+> two different models, and each result was kept in its own repository so the
+> outcomes can be read side by side:
+>
+> | Repo | Produced by |
+> |---|---|
+> | [go-lua-proxy](https://github.com/sambouli/go-lua-proxy) | the baseline model |
+> | **go-lua-proxy-fn** (this repo) | **QFN** (Qwen3.8-Flash-Next), hence the `-fn` suffix |
+>
+> The two are independent implementations of the same brief, not a fork and an
+> upstream. Nothing here is intended to replace the other repo — compare them on
+> structure, test coverage, docs and edge-case handling. The baseline side names its own model in its README.
+
 A single-binary HTTP reverse proxy in Go that runs **Lua scripts per request**
 and exposes a Lua API for regular reverse-proxy operations: client-IP
 resolution, request/response header rewriting, path/query rewrites, body
@@ -118,3 +132,22 @@ pass-through both directions, and clean `SIGTERM` shutdown — currently
   rate limits/caches.
 - Request bodies buffered up to 10 MB for Lua inspection.
 - Single upstream host, not a load balancer.
+
+## Comparing against `go-lua-proxy`
+
+Both repos solve the same brief, so the differences are about engineering choices
+rather than missing features. Points worth checking when reading them side by side:
+
+- **Configuration style** — env vars here (`LISTEN_ADDR`, `UPSTREAM`,
+  `LUA_SCRIPTS`) vs the other repo's flags and `.lua` file layout.
+- **Lua lifecycle** — this build starts a fresh VM per request; check whether the
+  other shares state across requests, and what that means for isolation.
+- **Body handling** — request bodies are buffered up to 10 MB here before Lua sees
+  them; compare the limit and the streaming behaviour.
+- **Test strategy** — unit + in-process end-to-end tests plus a `scripts/verify_e2e.sh`
+  rig that drives a real compiled binary against a dummy origin server.
+- **Client-IP trust** — forged `X-Forwarded-For` rejection is asserted here; see how
+  the other decides which proxies to trust.
+
+Neither is meant to be canonical. Pick whichever fits, or read both as reference
+implementations of the same idea.
